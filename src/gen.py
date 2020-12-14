@@ -4,6 +4,7 @@
 # - Add color
 
 import os
+import re
 import sys
 import click
 import curses
@@ -12,6 +13,14 @@ from lib.Display import Display
 
 # Disables curses
 DEBUG = False
+
+# Color key to curses pair number
+COLOR_MAP = {
+	'INFO': 1, # Cyan on black
+	'WARN': 2, # Yellow on black
+	'ERROR': 3, # Red on black
+	'SUCCESS': 4, # Green on black
+}
 
 @click.command()
 @click.option('-d', '--display', required=True, help='The display format to use (plain, json or a j2 template)')
@@ -26,6 +35,11 @@ def main(display, filter):
 		screen.keypad(True)
 		curses.noecho()
 		curses.start_color()
+
+		curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+		curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+		curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+		curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
 		# Run
 		err = None
@@ -53,7 +67,18 @@ def start(screen, env, display_format):
 
 		current_page = env.index + 1
 		screen.addstr(f'{current_page} / {total_pages}\n')
-		screen.addstr(display.build(current))
+
+		# Output line by line so we can handle any color modifiers
+		lines = display.build(current)
+		for line in lines.split("\n"):
+			if match := re.search('^!!\[(\w+)\]', line):
+				line = re.sub('^!!\[\w+\]', '', line)
+				color_pair = curses.color_pair(COLOR_MAP.get(match.group(1), 0))
+				screen.addstr(line + "\n", color_pair)
+			else:
+				screen.addstr(line + "\n")
+
+		# screen.addstr(display.build(current))
 		screen.addstr("\n")
 		screen.refresh()
 

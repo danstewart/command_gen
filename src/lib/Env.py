@@ -18,10 +18,6 @@ class Env():
 		for env in self.config:
 			if 'inventory' not in env:
 				env['inventory'] = env['label']
-			# host = env.get('label')
-			# name = env.get('name_format')
-			# region = env.get('region')
-			# inventory = env.get('inventory', host)
 
 			# Filter
 			skip = False
